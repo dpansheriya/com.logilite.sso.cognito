@@ -38,7 +38,6 @@ public class CognitoOidcClient extends OidcClient
 	@Override
 	protected void internalInit(final boolean forceReinit)
 	{
-		//"https://cognito-idp.us-west-2.amazonaws.com/us-west-2_o2gTmeJW7/.well-known/openid-configuration"
 		getConfiguration().defaultDiscoveryURI(discoveryURI);
 		final var profileCreator = new OidcProfileCreator(getConfiguration(), this);
 		profileCreator.setProfileDefinition(new OidcProfileDefinition(x -> new OidcProfile()));
