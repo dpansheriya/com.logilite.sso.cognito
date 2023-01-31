@@ -28,7 +28,8 @@ import org.pac4j.jee.http.adapter.JEEHttpActionAdapter;
 import org.pac4j.oidc.client.OidcClient;
 import org.pac4j.oidc.config.OidcConfiguration;
 
-public class CognitoSSOPrinciple implements ISSOPrinciple {
+public class CognitoSSOPrinciple implements ISSOPrinciple
+{
 
 	protected I_SSO_PrincipleConfig	principleConfig;
 
@@ -68,7 +69,8 @@ public class CognitoSSOPrinciple implements ISSOPrinciple {
 	}
 
 	@Override
-	public boolean hasAuthenticationCode(HttpServletRequest request, HttpServletResponse response) {
+	public boolean hasAuthenticationCode(HttpServletRequest request, HttpServletResponse response)
+	{
 		return handler.hasAuthenticationCode(request, response);
 	}
 
@@ -79,7 +81,8 @@ public class CognitoSSOPrinciple implements ISSOPrinciple {
 	}
 
 	@Override
-	public boolean isAuthenticated(HttpServletRequest request, HttpServletResponse response) {
+	public boolean isAuthenticated(HttpServletRequest request, HttpServletResponse response)
+	{
 		if (request.getSession() == null)
 			return false;
 		return handler.isAuthenticated(request, response);
@@ -95,7 +98,8 @@ public class CognitoSSOPrinciple implements ISSOPrinciple {
 	}
 
 	@Override
-	public boolean isAccessTokenExpired(HttpServletRequest request, HttpServletResponse response) {
+	public boolean isAccessTokenExpired(HttpServletRequest request, HttpServletResponse response)
+	{
 		return handler.isAccessTokenExpired(request, response);
 	}
 
@@ -106,19 +110,23 @@ public class CognitoSSOPrinciple implements ISSOPrinciple {
 	}
 
 	@Override
-	public void removePrincipleFromSession(HttpServletRequest request) {
+	public void removePrincipleFromSession(HttpServletRequest request)
+	{
 		handler.removePrincipleFromSession(request);
 	}
 
 	@Override
-	public String getUserName(Object result) throws ParseException {
+	public String getUserName(Object result) throws ParseException
+	{
 		return handler.getUserName(result);
 	}
 
 	@Override
-	public Language getLanguage(Object result) throws ParseException {
+	public Language getLanguage(Object result) throws ParseException
+	{
 		return handler.getLanguage(result);
 	}
+
 	public String getClientName(String redirectMode)
 	{
 		if (SSOUtils.SSO_MODE_OSGI.equalsIgnoreCase(redirectMode))

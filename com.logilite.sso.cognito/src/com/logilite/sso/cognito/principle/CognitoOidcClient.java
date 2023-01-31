@@ -25,6 +25,7 @@ public class CognitoOidcClient extends OidcClient
 {
 
 	String discoveryURI;
+
 	public CognitoOidcClient()
 	{
 	}

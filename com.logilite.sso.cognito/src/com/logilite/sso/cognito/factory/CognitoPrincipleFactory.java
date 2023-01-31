@@ -18,14 +18,15 @@ import org.compiere.model.I_SSO_PrincipleConfig;
 
 import com.logilite.sso.cognito.principle.CognitoSSOPrinciple;
 
-public class CognitoPrincipleFactory implements ISSOPrincipleFactory {
-
+public class CognitoPrincipleFactory implements ISSOPrincipleFactory
+{
 	@Override
-	public ISSOPrinciple getSSOPrincipleService(I_SSO_PrincipleConfig config) {
-		if (config.getSSO_Provider().equals("COGNITO")) {
+	public ISSOPrinciple getSSOPrincipleService(I_SSO_PrincipleConfig config)
+	{
+		if (config.getSSO_Provider().equals("COGNITO"))
+		{
 			return new CognitoSSOPrinciple(config);
 		}
 		return null;
 	}
-
 }
