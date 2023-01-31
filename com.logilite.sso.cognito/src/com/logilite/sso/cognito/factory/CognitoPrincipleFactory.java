@@ -12,8 +12,8 @@
  *****************************************************************************/
 package com.logilite.sso.cognito.factory;
 
-import org.adempiere.webui.sso.ISSOPrinciple;
-import org.adempiere.webui.sso.ISSOPrincipleFactory;
+import org.adempiere.base.sso.ISSOPrinciple;
+import org.adempiere.base.sso.ISSOPrincipleFactory;
 import org.compiere.model.I_SSO_PrincipleConfig;
 
 import com.logilite.sso.cognito.principle.CognitoSSOPrinciple;

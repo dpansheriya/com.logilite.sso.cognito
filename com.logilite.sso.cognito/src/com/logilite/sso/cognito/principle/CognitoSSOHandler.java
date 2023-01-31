@@ -26,7 +26,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
-import org.adempiere.webui.sso.ISSOPrinciple;
+import org.adempiere.base.sso.ISSOPrinciple;
+import org.adempiere.base.sso.SSOUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.compiere.model.I_SSO_PrincipleConfig;
 import org.compiere.model.MSysConfig;
@@ -45,7 +46,6 @@ import org.pac4j.core.util.Pac4jConstants;
 import org.pac4j.jee.context.JEEContextFactory;
 import org.pac4j.jee.context.session.JEESessionStoreFactory;
 import org.pac4j.jee.http.adapter.JEEHttpActionAdapter;
-import org.pac4j.oidc.client.OidcClient;
 import org.pac4j.oidc.config.OidcConfiguration;
 
 import com.nimbusds.oauth2.sdk.id.State;
@@ -59,21 +59,20 @@ public class CognitoSSOHandler {
 	protected static final String SSO_WEB_CONTEXT = "sso.WebContext";
 	protected static final String SSO_SESSION_STORE = "sso.SessionStore";
 
-	protected String redirectURL;
 	protected String domainURL;
 	protected Config config;
-	protected OidcClient client;
 	protected I_SSO_PrincipleConfig principleConfig;
 	protected HttpActionAdapter actionAdapter;
 	protected DefaultCallbackLogic auathLogic;
+	protected CognitoSSOPrinciple cognitoSSOPrinciple;
 
-	public CognitoSSOHandler(OidcClient client, Config oidcConfig, I_SSO_PrincipleConfig principleConfig,
+
+	public CognitoSSOHandler(CognitoSSOPrinciple cognitoSSOPrinciple, Config oidcConfig, I_SSO_PrincipleConfig principleConfig,
 			JEEHttpActionAdapter actionAdapter) {
-		setclient(client);
+		setCognitoSSOPrinciple(cognitoSSOPrinciple);
 		setConfig(oidcConfig);
 		setPrincipleConfig(principleConfig);
 		setHttpActionAdapter(actionAdapter);
-		setRedirectURL(principleConfig.getSSO_ApplicationRedirectURIs());
 		setDomainURL(principleConfig.getSSO_ApplicationDomain());
 		setUpSSOLogics();
 	}
@@ -82,8 +81,8 @@ public class CognitoSSOHandler {
 		auathLogic = DefaultCallbackLogic.INSTANCE;
 	}
 
-	public void redirectForAuthentication(HttpServletRequest request, HttpServletResponse response) {
-		sendAuthRedirect(request, response);
+	public void redirectForAuthentication(HttpServletRequest request, HttpServletResponse response, String redirectMode) {
+		sendAuthRedirect(request, response, redirectMode);
 	}
 
 	public void afterUserAuth(HttpServletRequest request, HttpServletResponse response, WebContext ctx,
@@ -95,11 +94,11 @@ public class CognitoSSOHandler {
 		}
 	}
 
-	public void getAuthenticationToken(HttpServletRequest request, HttpServletResponse response) throws IOException {
+	public void getAuthenticationToken(HttpServletRequest request, HttpServletResponse response, String redirectMode) throws IOException {
 		WebContext context = (WebContext) request.getSession().getAttribute(SSO_WEB_CONTEXT);
 		SessionStore sessionStore = (SessionStore) request.getSession().getAttribute(SSO_SESSION_STORE);
 		if (context != null && sessionStore != null) {
-			auathLogic.perform(context, sessionStore, config, actionAdapter, redirectURL, true, client.getName());
+			auathLogic.perform(context, sessionStore, config, actionAdapter, SSOUtils.getRedirectedURL(redirectMode, principleConfig), true, cognitoSSOPrinciple.getClientName(redirectMode));
 			ProfileManager manager = new ProfileManager(context, sessionStore);
 			List<UserProfile> profiles = manager.getProfiles();
 			if (profiles != null && profiles.size() > 0) {
@@ -119,9 +118,9 @@ public class CognitoSSOHandler {
 			setPrinciple(request.getSession(), profiles);
 		}
 	}
-
-	public void setclient(OidcClient client) {
-		this.client = client;
+	
+	public void setCognitoSSOPrinciple(CognitoSSOPrinciple cognitoSSOPrinciple) {
+		this.cognitoSSOPrinciple = cognitoSSOPrinciple;
 	}
 
 	public void setConfig(Config config) {
@@ -130,10 +129,6 @@ public class CognitoSSOHandler {
 
 	public void setHttpActionAdapter(HttpActionAdapter actionAdapter) {
 		this.actionAdapter = actionAdapter;
-	}
-
-	public void setRedirectURL(String redirectURL) {
-		this.redirectURL = redirectURL;
 	}
 
 	public void setDomainURL(String domainURL) {
@@ -176,11 +171,14 @@ public class CognitoSSOHandler {
 	 * Prevent duplicate request as it cause state mismatch error on response
 	 * 
 	 * @param request
+	 * @param redirectMode 
 	 * @return
 	 */
-	public boolean isLoginRequestURL(HttpServletRequest request) {
+	public boolean isLoginRequestURL(HttpServletRequest request, String redirectMode) {
 		return (!Util.isEmpty(request.getServletPath())
-				&& (request.getServletPath().endsWith("index.zul") || request.getServletPath().equalsIgnoreCase("/")));
+				&& ((SSOUtils.SSO_MODE_WEBUI.equalsIgnoreCase(redirectMode) && (request.getServletPath().endsWith("index.zul") || request.getServletPath().equalsIgnoreCase("/")))
+					|| request.getServletPath().startsWith("/system/console")
+					|| request.getServletPath().startsWith("/idempiereMonitor")));
 	}
 
 	public boolean isAuthenticated(HttpServletRequest request, HttpServletResponse response) {
@@ -219,7 +217,7 @@ public class CognitoSSOHandler {
 		return Language.getBaseLanguage();
 	}
 
-	public void sendAuthRedirect(HttpServletRequest request, HttpServletResponse response) {
+	public void sendAuthRedirect(HttpServletRequest request, HttpServletResponse response, String redirectMode) {
 
 		// state parameter to validate response from Authorization server and nonce
 		State state = null;
@@ -229,18 +227,19 @@ public class CognitoSSOHandler {
 		request.getSession().setAttribute(SSO_WEB_CONTEXT, context);
 		request.getSession().setAttribute(SSO_SESSION_STORE, sessionStore);
 
-		if (client.getConfiguration().isWithState()) {
-			state = new State(client.getConfiguration().getStateGenerator().generateValue(context, sessionStore));
-			sessionStore.set(context, client.getStateSessionAttributeName(), state);
+		if (cognitoSSOPrinciple.getConfiguration(redirectMode).isWithState()) {
+			state = new State(cognitoSSOPrinciple.getConfiguration(redirectMode).getStateGenerator().generateValue(context, sessionStore));
+			sessionStore.set(context, cognitoSSOPrinciple.getStateSessionAttributeName(redirectMode), state);
 		}
-		if (client.getConfiguration().isUseNonce()) {
+		
+		if (cognitoSSOPrinciple.getConfiguration(redirectMode).isUseNonce()) {
 			nonce = new Nonce();
-			sessionStore.set(context, client.getNonceSessionAttributeName(), nonce.getValue());
+			sessionStore.set(context, cognitoSSOPrinciple.getStateSessionAttributeName(redirectMode), nonce.getValue());
 		}
-		sessionStore.set(context, Pac4jConstants.REQUESTED_URL, principleConfig.getSSO_ApplicationRedirectURIs());
+		sessionStore.set(context, Pac4jConstants.REQUESTED_URL, SSOUtils.getRedirectedURL(redirectMode, principleConfig));
 
 		response.setStatus(302);
-		String authorizationCodeUrl = getAuthorizationCodeUrl(state, nonce);
+		String authorizationCodeUrl = getAuthorizationCodeUrl(state, nonce, redirectMode);
 		try {
 			response.sendRedirect(authorizationCodeUrl);
 		} catch (IOException e) {
@@ -248,17 +247,19 @@ public class CognitoSSOHandler {
 		}
 	}
 
-	private String getAuthorizationCodeUrl(State state, Nonce nonce) {
+	private String getAuthorizationCodeUrl(State state, Nonce nonce, String redirectMode) {
 		URL url = null;
 		try {
-			OidcConfiguration configuration = client.getConfiguration();
+			OidcConfiguration configuration = cognitoSSOPrinciple.getConfiguration(redirectMode);
 
 			URIBuilder builder = new URIBuilder(domainURL.trim() + "login");
 			builder.addParameter("scope", configuration.getScope());
 			builder.addParameter("response_type", configuration.getResponseType());
-			builder.addParameter("redirect_uri", principleConfig.getSSO_ApplicationRedirectURIs());
-			builder.addParameter("state", state.toString());
-			builder.addParameter("nonce", nonce.toString());
+			builder.addParameter("redirect_uri", SSOUtils.getRedirectedURL(redirectMode, principleConfig));
+			if (state != null)
+				builder.addParameter("state", state.toString());
+			if (nonce != null)
+				builder.addParameter("nonce", nonce.toString());
 			builder.addParameter("client_id", principleConfig.getSSO_ApplicationClientID());
 
 			url = builder.build().toURL();

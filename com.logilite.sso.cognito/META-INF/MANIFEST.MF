@@ -10,8 +10,8 @@ Bundle-ActivationPolicy: lazy
 Require-Bundle: org.adempiere.plugin.utils;bundle-version="7.1.0",
  org.adempiere.base,
  org.adempiere.ui.zk,
- org.eclipse.jetty.osgi-servlet-api,
- org.apache.httpcomponents.httpclient
+ org.apache.httpcomponents.httpclient,
+ org.eclipse.jetty.servlet-api
 Bundle-Activator: org.adempiere.plugin.utils.Incremental2PackActivator
 Bundle-ClassPath: lib/accessors-smart-2.4.8.jar,
  lib/activation-1.1.jar,
