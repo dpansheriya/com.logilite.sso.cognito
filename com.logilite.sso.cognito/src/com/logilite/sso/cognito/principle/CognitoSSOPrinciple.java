@@ -56,7 +56,7 @@ public class CognitoSSOPrinciple implements ISSOPrinciple
 
 		clientMonitior = new CognitoOidcClient(configuration, principleConfig);
 		clientMonitior.setCallbackUrl(principleConfig.getSSO_IDempMonitorRedirectURIs());
-		clientMonitior.setName(principleConfig.getSSO_Provider() + SSOUtils.SSO_MODE_MONITIOR);
+		clientMonitior.setName(principleConfig.getSSO_Provider() + SSOUtils.SSO_MODE_MONITOR);
 
 		clientOsgi = new CognitoOidcClient(configuration, principleConfig);
 		clientOsgi.setCallbackUrl(principleConfig.getSSO_OSGIRedirectURIs());
@@ -131,7 +131,7 @@ public class CognitoSSOPrinciple implements ISSOPrinciple
 	{
 		if (SSOUtils.SSO_MODE_OSGI.equalsIgnoreCase(redirectMode))
 			return clientOsgi.getName();
-		else if (SSOUtils.SSO_MODE_MONITIOR.equalsIgnoreCase(redirectMode))
+		else if (SSOUtils.SSO_MODE_MONITOR.equalsIgnoreCase(redirectMode))
 			return clientMonitior.getName();
 		return clientWebui.getName();
 	}
@@ -140,7 +140,7 @@ public class CognitoSSOPrinciple implements ISSOPrinciple
 	{
 		if (SSOUtils.SSO_MODE_OSGI.equalsIgnoreCase(redirectMode))
 			return clientOsgi.getConfiguration();
-		else if (SSOUtils.SSO_MODE_MONITIOR.equalsIgnoreCase(redirectMode))
+		else if (SSOUtils.SSO_MODE_MONITOR.equalsIgnoreCase(redirectMode))
 			return clientMonitior.getConfiguration();
 		return clientWebui.getConfiguration();
 	}
@@ -149,7 +149,7 @@ public class CognitoSSOPrinciple implements ISSOPrinciple
 	{
 		if (SSOUtils.SSO_MODE_OSGI.equalsIgnoreCase(redirectMode))
 			return clientOsgi.getStateSessionAttributeName();
-		else if (SSOUtils.SSO_MODE_MONITIOR.equalsIgnoreCase(redirectMode))
+		else if (SSOUtils.SSO_MODE_MONITOR.equalsIgnoreCase(redirectMode))
 			return clientMonitior.getStateSessionAttributeName();
 		return clientWebui.getStateSessionAttributeName();
 	}
