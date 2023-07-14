@@ -38,4 +38,4 @@ Bundle-ClassPath: lib/accessors-smart-2.4.8.jar,
  lib/pac4j-oidc-5.6.1.jar,
  lib/slf4j-api-2.0.3.jar,
  .
-Service-Component: OSGI-INF/cognitoprinciplefactory.xml
+Service-Component: OSGI-INF/*.xml

@@ -10,9 +10,9 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,    *
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.                     *
  *****************************************************************************/
-package com.logilite.sso.cognito.principle;
+package com.logilite.sso.cognito.principal;
 
-import org.compiere.model.I_SSO_PrincipleConfig;
+import org.compiere.model.I_SSO_PrincipalConfig;
 import org.pac4j.core.http.callback.NoParameterCallbackUrlResolver;
 import org.pac4j.oidc.client.OidcClient;
 import org.pac4j.oidc.config.OidcConfiguration;
@@ -30,10 +30,10 @@ public class CognitoOidcClient extends OidcClient
 	{
 	}
 
-	public CognitoOidcClient(final OidcConfiguration configuration, I_SSO_PrincipleConfig principleConfig)
+	public CognitoOidcClient(final OidcConfiguration configuration, I_SSO_PrincipalConfig principalConfig)
 	{
 		super(configuration);
-		discoveryURI = principleConfig.getSSO_ApplicationDiscoveryURI();
+		discoveryURI = principalConfig.getSSO_ApplicationDiscoveryURI();
 	}
 
 	@Override

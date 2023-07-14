@@ -10,7 +10,7 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,    *
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.                     *
  *****************************************************************************/
-package com.logilite.sso.cognito.principle;
+package com.logilite.sso.cognito.principal;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -26,10 +26,10 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
-import org.adempiere.base.sso.ISSOPrinciple;
+import org.adempiere.base.sso.ISSOPrincipalService;
 import org.adempiere.base.sso.SSOUtils;
 import org.apache.http.client.utils.URIBuilder;
-import org.compiere.model.I_SSO_PrincipleConfig;
+import org.compiere.model.I_SSO_PrincipalConfig;
 import org.compiere.model.MSysConfig;
 import org.compiere.util.CLogger;
 import org.compiere.util.Language;
@@ -62,19 +62,18 @@ public class CognitoSSOHandler
 
 	protected String				domainURL;
 	protected Config				config;
-	protected I_SSO_PrincipleConfig	principleConfig;
+	protected I_SSO_PrincipalConfig	principalConfig;
 	protected HttpActionAdapter		actionAdapter;
 	protected DefaultCallbackLogic	auathLogic;
-	protected CognitoSSOPrinciple	cognitoSSOPrinciple;
+	protected CognitoSSOPrincipal	cognitoSSOPrincipal;
 
-	public CognitoSSOHandler(	CognitoSSOPrinciple cognitoSSOPrinciple, Config oidcConfig, I_SSO_PrincipleConfig principleConfig,
-								JEEHttpActionAdapter actionAdapter)
+	public CognitoSSOHandler(CognitoSSOPrincipal cognitoSSOPrincipal, Config oidcConfig, I_SSO_PrincipalConfig principalConfig, JEEHttpActionAdapter actionAdapter)
 	{
-		setCognitoSSOPrinciple(cognitoSSOPrinciple);
+		setCognitoSSOPrincipal(cognitoSSOPrincipal);
 		setConfig(oidcConfig);
-		setPrincipleConfig(principleConfig);
+		setPrincipalConfig(principalConfig);
 		setHttpActionAdapter(actionAdapter);
-		setDomainURL(principleConfig.getSSO_ApplicationDomain());
+		setDomainURL(principalConfig.getSSO_ApplicationDomain());
 		setUpSSOLogics();
 	}
 
@@ -93,7 +92,7 @@ public class CognitoSSOHandler
 	{
 		if (profiles != null && profiles.size() > 0)
 		{
-			request.getSession().setAttribute(ISSOPrinciple.SSO_PRINCIPLE_SESSION_NAME, profiles.toArray()[0]);
+			request.getSession().setAttribute(ISSOPrincipalService.SSO_PRINCIPAL_SESSION_TOKEN, profiles.toArray()[0]);
 			String currentUri = request.getRequestURL().toString();
 			response.sendRedirect(currentUri);
 		}
@@ -105,12 +104,12 @@ public class CognitoSSOHandler
 		SessionStore sessionStore = (SessionStore) request.getSession().getAttribute(SSO_SESSION_STORE);
 		if (context != null && sessionStore != null)
 		{
-			auathLogic.perform(context, sessionStore, config, actionAdapter, SSOUtils.getRedirectedURL(redirectMode, principleConfig), true, cognitoSSOPrinciple.getClientName(redirectMode));
+			auathLogic.perform(context, sessionStore, config, actionAdapter, SSOUtils.getRedirectedURL(redirectMode, principalConfig), true, cognitoSSOPrincipal.getClientName(redirectMode));
 			ProfileManager manager = new ProfileManager(context, sessionStore);
 			List<UserProfile> profiles = manager.getProfiles();
 			if (profiles != null && profiles.size() > 0)
 			{
-				setPrinciple(request.getSession(), profiles.get(0));
+				setPrincipal(request.getSession(), profiles.get(0));
 				afterUserAuth(request, response, context, sessionStore, profiles, null);
 			}
 		}
@@ -125,13 +124,13 @@ public class CognitoSSOHandler
 		List<UserProfile> profiles = manager.getProfiles();
 		if (profiles != null && profiles.size() > 0)
 		{
-			setPrinciple(request.getSession(), profiles);
+			setPrincipal(request.getSession(), profiles);
 		}
 	}
 
-	public void setCognitoSSOPrinciple(CognitoSSOPrinciple cognitoSSOPrinciple)
+	public void setCognitoSSOPrincipal(CognitoSSOPrincipal cognitoSSOPrincipal)
 	{
-		this.cognitoSSOPrinciple = cognitoSSOPrinciple;
+		this.cognitoSSOPrincipal = cognitoSSOPrincipal;
 	}
 
 	public void setConfig(Config config)
@@ -151,9 +150,9 @@ public class CognitoSSOHandler
 		this.domainURL = domainURL;
 	}
 
-	public void setPrincipleConfig(I_SSO_PrincipleConfig principleConfig)
+	public void setPrincipalConfig(I_SSO_PrincipalConfig principalConfig)
 	{
-		this.principleConfig = principleConfig;
+		this.principalConfig = principalConfig;
 	}
 
 	public WebContext newWebContext(HttpServletRequest request, HttpServletResponse response)
@@ -169,9 +168,9 @@ public class CognitoSSOHandler
 										response);
 	}
 
-	public void setPrinciple(HttpSession httpSession, Object token)
+	public void setPrincipal(HttpSession httpSession, Object token)
 	{
-		httpSession.setAttribute(ISSOPrinciple.SSO_PRINCIPLE_SESSION_NAME, token);
+		httpSession.setAttribute(ISSOPrincipalService.SSO_PRINCIPAL_SESSION_TOKEN, token);
 	}
 
 	/**
@@ -205,25 +204,25 @@ public class CognitoSSOHandler
 
 	public boolean isAuthenticated(HttpServletRequest request, HttpServletResponse response)
 	{
-		return request.getSession().getAttribute(ISSOPrinciple.SSO_PRINCIPLE_SESSION_NAME) != null;
+		return request.getSession().getAttribute(ISSOPrincipalService.SSO_PRINCIPAL_SESSION_TOKEN) != null;
 	}
 
 	public boolean isAccessTokenExpired(HttpServletRequest request, HttpServletResponse response)
 	{
-		if (request.getSession().getAttribute(ISSOPrinciple.SSO_PRINCIPLE_SESSION_NAME) != null
-			&& request.getSession().getAttribute(ISSOPrinciple.SSO_PRINCIPLE_SESSION_NAME) instanceof UserProfile)
+		if (request.getSession().getAttribute(ISSOPrincipalService.SSO_PRINCIPAL_SESSION_TOKEN) != null
+			&& request.getSession().getAttribute(ISSOPrincipalService.SSO_PRINCIPAL_SESSION_TOKEN) instanceof UserProfile)
 		{
 			UserProfile obj = ((UserProfile) request
 							.getSession()
-							.getAttribute(ISSOPrinciple.SSO_PRINCIPLE_SESSION_NAME));
+							.getAttribute(ISSOPrincipalService.SSO_PRINCIPAL_SESSION_TOKEN));
 			return ((Date) obj.getAttribute("exp")).before(new Date());
 		}
 		return false;
 	}
 
-	public void removePrincipleFromSession(HttpServletRequest request)
+	public void removePrincipalFromSession(HttpServletRequest request)
 	{
-		request.getSession().removeAttribute(ISSOPrinciple.SSO_PRINCIPLE_SESSION_NAME);
+		request.getSession().removeAttribute(ISSOPrincipalService.SSO_PRINCIPAL_SESSION_TOKEN);
 		request.getSession().removeAttribute(SSO_WEB_CONTEXT);
 		request.getSession().removeAttribute(SSO_SESSION_STORE);
 	}
@@ -258,18 +257,18 @@ public class CognitoSSOHandler
 		request.getSession().setAttribute(SSO_WEB_CONTEXT, context);
 		request.getSession().setAttribute(SSO_SESSION_STORE, sessionStore);
 
-		if (cognitoSSOPrinciple.getConfiguration(redirectMode).isWithState())
+		if (cognitoSSOPrincipal.getConfiguration(redirectMode).isWithState())
 		{
-			state = new State(cognitoSSOPrinciple.getConfiguration(redirectMode).getStateGenerator().generateValue(context, sessionStore));
-			sessionStore.set(context, cognitoSSOPrinciple.getStateSessionAttributeName(redirectMode), state);
+			state = new State(cognitoSSOPrincipal.getConfiguration(redirectMode).getStateGenerator().generateValue(context, sessionStore));
+			sessionStore.set(context, cognitoSSOPrincipal.getStateSessionAttributeName(redirectMode), state);
 		}
 
-		if (cognitoSSOPrinciple.getConfiguration(redirectMode).isUseNonce())
+		if (cognitoSSOPrincipal.getConfiguration(redirectMode).isUseNonce())
 		{
 			nonce = new Nonce();
-			sessionStore.set(context, cognitoSSOPrinciple.getStateSessionAttributeName(redirectMode), nonce.getValue());
+			sessionStore.set(context, cognitoSSOPrincipal.getStateSessionAttributeName(redirectMode), nonce.getValue());
 		}
-		sessionStore.set(context, Pac4jConstants.REQUESTED_URL, SSOUtils.getRedirectedURL(redirectMode, principleConfig));
+		sessionStore.set(context, Pac4jConstants.REQUESTED_URL, SSOUtils.getRedirectedURL(redirectMode, principalConfig));
 
 		response.setStatus(302);
 		String authorizationCodeUrl = getAuthorizationCodeUrl(state, nonce, redirectMode);
@@ -288,17 +287,17 @@ public class CognitoSSOHandler
 		URL url = null;
 		try
 		{
-			OidcConfiguration configuration = cognitoSSOPrinciple.getConfiguration(redirectMode);
+			OidcConfiguration configuration = cognitoSSOPrincipal.getConfiguration(redirectMode);
 
 			URIBuilder builder = new URIBuilder(domainURL.trim() + "login");
 			builder.addParameter("scope", configuration.getScope());
 			builder.addParameter("response_type", configuration.getResponseType());
-			builder.addParameter("redirect_uri", SSOUtils.getRedirectedURL(redirectMode, principleConfig));
+			builder.addParameter("redirect_uri", SSOUtils.getRedirectedURL(redirectMode, principalConfig));
 			if (state != null)
 				builder.addParameter("state", state.toString());
 			if (nonce != null)
 				builder.addParameter("nonce", nonce.toString());
-			builder.addParameter("client_id", principleConfig.getSSO_ApplicationClientID());
+			builder.addParameter("client_id", principalConfig.getSSO_ApplicationClientID());
 
 			url = builder.build().toURL();
 		}

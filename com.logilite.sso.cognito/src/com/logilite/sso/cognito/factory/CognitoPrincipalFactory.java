@@ -12,20 +12,20 @@
  *****************************************************************************/
 package com.logilite.sso.cognito.factory;
 
-import org.adempiere.base.sso.ISSOPrinciple;
-import org.adempiere.base.sso.ISSOPrincipleFactory;
-import org.compiere.model.I_SSO_PrincipleConfig;
+import org.adempiere.base.sso.ISSOPrincipalFactory;
+import org.adempiere.base.sso.ISSOPrincipalService;
+import org.compiere.model.I_SSO_PrincipalConfig;
 
-import com.logilite.sso.cognito.principle.CognitoSSOPrinciple;
+import com.logilite.sso.cognito.principal.CognitoSSOPrincipal;
 
-public class CognitoPrincipleFactory implements ISSOPrincipleFactory
+public class CognitoPrincipalFactory implements ISSOPrincipalFactory
 {
 	@Override
-	public ISSOPrinciple getSSOPrincipleService(I_SSO_PrincipleConfig config)
+	public ISSOPrincipalService getSSOPrincipalService(I_SSO_PrincipalConfig config)
 	{
 		if (config.getSSO_Provider().equals("COGNITO"))
 		{
-			return new CognitoSSOPrinciple(config);
+			return new CognitoSSOPrincipal(config);
 		}
 		return null;
 	}
