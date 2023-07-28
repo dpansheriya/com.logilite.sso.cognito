@@ -25,7 +25,6 @@ import org.compiere.util.Language;
 import org.pac4j.core.client.Clients;
 import org.pac4j.core.config.Config;
 import org.pac4j.jee.http.adapter.JEEHttpActionAdapter;
-import org.pac4j.oidc.client.OidcClient;
 import org.pac4j.oidc.config.OidcConfiguration;
 
 public class CognitoSSOPrincipal implements ISSOPrincipalService
@@ -34,9 +33,9 @@ public class CognitoSSOPrincipal implements ISSOPrincipalService
 	protected I_SSO_PrincipalConfig	principalConfig;
 
 	private CognitoSSOHandler		handler;
-	private OidcClient				clientWebui;
-	private OidcClient				clientMonitior;
-	private OidcClient				clientOsgi;
+	private CognitoOidcClient		clientWebui;
+	private CognitoOidcClient		clientMonitior;
+	private CognitoOidcClient		clientOsgi;
 
 	public CognitoSSOPrincipal(I_SSO_PrincipalConfig principalConfig)
 	{
@@ -123,6 +122,15 @@ public class CognitoSSOPrincipal implements ISSOPrincipalService
 	public Language getLanguage(Object result) throws ParseException
 	{
 		return handler.getLanguage(result);
+	}
+	
+	public CognitoOidcClient getClient(String redirectMode)
+	{
+		if (SSOUtils.SSO_MODE_OSGI.equalsIgnoreCase(redirectMode))
+			return clientOsgi;
+		else if (SSOUtils.SSO_MODE_MONITOR.equalsIgnoreCase(redirectMode))
+			return clientMonitior;
+		return clientWebui;
 	}
 
 	public String getClientName(String redirectMode)

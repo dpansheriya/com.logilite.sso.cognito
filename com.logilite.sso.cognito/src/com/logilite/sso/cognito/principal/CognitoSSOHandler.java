@@ -60,11 +60,11 @@ public class CognitoSSOHandler
 	protected static final String	SSO_WEB_CONTEXT		= "sso.WebContext";
 	protected static final String	SSO_SESSION_STORE	= "sso.SessionStore";
 
-	protected String				domainURL;
 	protected Config				config;
 	protected I_SSO_PrincipalConfig	principalConfig;
 	protected HttpActionAdapter		actionAdapter;
 	protected DefaultCallbackLogic	auathLogic;
+	// protected DefaultSecurityLogic securityLogic;
 	protected CognitoSSOPrincipal	cognitoSSOPrincipal;
 
 	public CognitoSSOHandler(CognitoSSOPrincipal cognitoSSOPrincipal, Config oidcConfig, I_SSO_PrincipalConfig principalConfig, JEEHttpActionAdapter actionAdapter)
@@ -73,13 +73,13 @@ public class CognitoSSOHandler
 		setConfig(oidcConfig);
 		setPrincipalConfig(principalConfig);
 		setHttpActionAdapter(actionAdapter);
-		setDomainURL(principalConfig.getSSO_ApplicationDomain());
 		setUpSSOLogics();
 	}
 
 	public void setUpSSOLogics()
 	{
 		auathLogic = DefaultCallbackLogic.INSTANCE;
+		// securityLogic = DefaultSecurityLogic.INSTANCE;
 	}
 
 	public void redirectForAuthentication(HttpServletRequest request, HttpServletResponse response, String redirectMode)
@@ -113,6 +113,11 @@ public class CognitoSSOHandler
 				afterUserAuth(request, response, context, sessionStore, profiles, null);
 			}
 		}
+		else
+		{
+			// If Authentication can not be done redirect to login url as per mode.
+			response.sendRedirect(SSOUtils.getRedirectedURL(redirectMode, principalConfig));
+		}
 	}
 
 	public void refreshToken(HttpServletRequest request, HttpServletResponse response)
@@ -143,13 +148,6 @@ public class CognitoSSOHandler
 		this.actionAdapter = actionAdapter;
 	}
 
-	public void setDomainURL(String domainURL)
-	{
-		if (!domainURL.endsWith("/"))
-			domainURL = domainURL + "/";
-		this.domainURL = domainURL;
-	}
-
 	public void setPrincipalConfig(I_SSO_PrincipalConfig principalConfig)
 	{
 		this.principalConfig = principalConfig;
@@ -162,10 +160,7 @@ public class CognitoSSOHandler
 
 	public SessionStore newSessionStore(HttpServletRequest request, HttpServletResponse response)
 	{
-		return FindBest
-						.sessionStoreFactory(null, config, new JEESessionStoreFactory())
-						.newSessionStore(request,
-										response);
+		return FindBest.sessionStoreFactory(null, config, new JEESessionStoreFactory()).newSessionStore(request, response);
 	}
 
 	public void setPrincipal(HttpSession httpSession, Object token)
@@ -212,9 +207,7 @@ public class CognitoSSOHandler
 		if (request.getSession().getAttribute(ISSOPrincipalService.SSO_PRINCIPAL_SESSION_TOKEN) != null
 			&& request.getSession().getAttribute(ISSOPrincipalService.SSO_PRINCIPAL_SESSION_TOKEN) instanceof UserProfile)
 		{
-			UserProfile obj = ((UserProfile) request
-							.getSession()
-							.getAttribute(ISSOPrincipalService.SSO_PRINCIPAL_SESSION_TOKEN));
+			UserProfile obj = ((UserProfile) request.getSession().getAttribute(ISSOPrincipalService.SSO_PRINCIPAL_SESSION_TOKEN));
 			return ((Date) obj.getAttribute("exp")).before(new Date());
 		}
 		return false;
@@ -246,6 +239,13 @@ public class CognitoSSOHandler
 		return Language.getBaseLanguage();
 	}
 
+	/**
+	 * Redirect to login URL
+	 * 
+	 * @param request
+	 * @param response
+	 * @param redirectMode
+	 */
 	public void sendAuthRedirect(HttpServletRequest request, HttpServletResponse response, String redirectMode)
 	{
 
@@ -271,17 +271,36 @@ public class CognitoSSOHandler
 		sessionStore.set(context, Pac4jConstants.REQUESTED_URL, SSOUtils.getRedirectedURL(redirectMode, principalConfig));
 
 		response.setStatus(302);
-		String authorizationCodeUrl = getAuthorizationCodeUrl(state, nonce, redirectMode);
 		try
 		{
+			// load the Discovery configuration
+			cognitoSSOPrincipal.getClient(redirectMode).getConfiguration().setDiscoveryURI(principalConfig.getSSO_ApplicationDiscoveryURI());
+			cognitoSSOPrincipal.getClient(redirectMode).init(true);
+
+			String authorizationCodeUrl = getAuthorizationCodeUrl(state, nonce, redirectMode);
 			response.sendRedirect(authorizationCodeUrl);
+
+			// Use Authorize endpoint for user login., TODO find a way to revoke the user session
+			// ProfileManager manager = new ProfileManager(context, sessionStore);
+			// manager.removeProfiles();
+			// securityLogic.perform(context, sessionStore, config, null, actionAdapter,
+			// cognitoSSOPrincipal.getClientName(redirectMode), null, null);
+			// securityLogic.setLoadProfilesFromSession(false);
 		}
-		catch (IOException e)
+		catch (Exception e)
 		{
 			log.log(Level.SEVERE, "Redirect fail for auth", e);
 		}
 	}
 
+	/**
+	 * Create Redirect URL for login
+	 * 
+	 * @param  state
+	 * @param  nonce
+	 * @param  redirectMode
+	 * @return
+	 */
 	private String getAuthorizationCodeUrl(State state, Nonce nonce, String redirectMode)
 	{
 		URL url = null;
@@ -289,7 +308,8 @@ public class CognitoSSOHandler
 		{
 			OidcConfiguration configuration = cognitoSSOPrincipal.getConfiguration(redirectMode);
 
-			URIBuilder builder = new URIBuilder(domainURL.trim() + "login");
+			String loginURL = cognitoSSOPrincipal.getClient(redirectMode).getConfiguration().findProviderMetadata().getAuthorizationEndpointURI().toString().replace("oauth2/authorize", "login");
+			URIBuilder builder = new URIBuilder(loginURL);
 			builder.addParameter("scope", configuration.getScope());
 			builder.addParameter("response_type", configuration.getResponseType());
 			builder.addParameter("redirect_uri", SSOUtils.getRedirectedURL(redirectMode, principalConfig));
