@@ -94,6 +94,9 @@ public class CognitoSSOHandler
 		{
 			request.getSession().setAttribute(ISSOPrincipalService.SSO_PRINCIPAL_SESSION_TOKEN, profiles.toArray()[0]);
 			String currentUri = request.getRequestURL().toString();
+			Object param = request.getSession().getAttribute(ISSOPrincipalService.SSO_ZOOM_PARAM);
+			if (param != null && !Util.isEmpty((String) param))
+				currentUri += "?" + (String) param;
 			response.sendRedirect(currentUri);
 		}
 	}
