@@ -14,6 +14,7 @@ package com.logilite.sso.cognito.principal;
 
 import java.io.IOException;
 import java.text.ParseException;
+import java.util.logging.Level;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -21,6 +22,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.adempiere.base.sso.ISSOPrincipalService;
 import org.adempiere.base.sso.SSOUtils;
 import org.compiere.model.I_SSO_PrincipalConfig;
+import org.compiere.util.CLogger;
 import org.compiere.util.Language;
 import org.pac4j.core.client.Clients;
 import org.pac4j.core.config.Config;
@@ -29,7 +31,7 @@ import org.pac4j.oidc.config.OidcConfiguration;
 
 public class CognitoSSOPrincipal implements ISSOPrincipalService
 {
-
+	protected static CLogger		log	= CLogger.getCLogger(CognitoSSOPrincipal.class);
 	protected I_SSO_PrincipalConfig	principalConfig;
 
 	private CognitoSSOHandler		handler;
@@ -76,7 +78,14 @@ public class CognitoSSOPrincipal implements ISSOPrincipalService
 	@Override
 	public void getAuthenticationToken(HttpServletRequest request, HttpServletResponse response, String redirectMode) throws Throwable
 	{
-		handler.getAuthenticationToken(request, response, redirectMode);
+		try
+		{
+			handler.getAuthenticationToken(request, response, redirectMode);
+		}
+		catch (Exception e)
+		{
+			log.log(Level.SEVERE, e.getLocalizedMessage(), e);
+		}
 	}
 
 	@Override

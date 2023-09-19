@@ -93,11 +93,6 @@ public class CognitoSSOHandler
 		if (profiles != null && profiles.size() > 0)
 		{
 			request.getSession().setAttribute(ISSOPrincipalService.SSO_PRINCIPAL_SESSION_TOKEN, profiles.toArray()[0]);
-			String currentUri = request.getRequestURL().toString();
-			Object param = request.getSession().getAttribute(ISSOPrincipalService.SSO_ZOOM_PARAM);
-			if (param != null && !Util.isEmpty((String) param))
-				currentUri += "?" + (String) param;
-			response.sendRedirect(currentUri);
 		}
 	}
 
@@ -115,11 +110,6 @@ public class CognitoSSOHandler
 				setPrincipal(request.getSession(), profiles.get(0));
 				afterUserAuth(request, response, context, sessionStore, profiles, null);
 			}
-		}
-		else
-		{
-			// If Authentication can not be done redirect to login url as per mode.
-			response.sendRedirect(SSOUtils.getRedirectedURL(redirectMode, principalConfig));
 		}
 	}
 
